@@ -6,7 +6,7 @@ import Foundation
 #if DEBUG
 
     /// A Mock implementation of the `JournalService`.
-    class MockJournalService: JournalService {
+    class Mock1JournalService: JournalService {
         private struct MockError: Error {}
 
         init(delay: TimeInterval = 0) {
