@@ -70,7 +70,6 @@ class LiveJournalService: JournalService {
     private let urlSession: URLSession
     
     init(delay: TimeInterval = 0) {
-        
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 30.0
         configuration.timeoutIntervalForResource = 60.0
@@ -126,19 +125,10 @@ class LiveJournalService: JournalService {
     }
     
     func createTrip(with request: TripCreate) async throws -> Trip {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.trips.url)
-        requestURL.httpMethod = HTTPMethods.POST.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.contentType.rawValue)
+        var requestURL = try contructRequest(url: EndPoints.trips.url, httpMethod: .POST)
 
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime]
-
         let tripData: [String: Any] = [
             "name": request.name,
             "start_date": dateFormatter.string(from: request.startDate),
@@ -150,40 +140,17 @@ class LiveJournalService: JournalService {
     }
     
     func getTrips() async throws -> [Trip] {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.trips.url)
-        requestURL.httpMethod = HTTPMethods.GET.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-
+        let requestURL = try contructRequest(url: EndPoints.trips.url, httpMethod: .GET)
         return try await performNetworkRequest(requestURL, responseType: [Trip].self)
     }
     
     func getTrip(withId tripId: Trip.ID) async throws -> Trip {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.handleTrip(String(tripId)).url)
-        requestURL.httpMethod = HTTPMethods.GET.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-
+        let requestURL = try contructRequest(url: EndPoints.handleTrip(String(tripId)).url, httpMethod: .GET)
         return try await performNetworkRequest(requestURL, responseType: Trip.self)
     }
     
     func updateTrip(withId tripId: Trip.ID, and request: TripUpdate) async throws -> Trip {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.handleTrip(String(tripId)).url)
-        requestURL.httpMethod = HTTPMethods.PUT.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
+        var requestURL = try contructRequest(url: EndPoints.handleTrip(String(tripId)).url, httpMethod: .PUT)
         
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime]
@@ -199,38 +166,20 @@ class LiveJournalService: JournalService {
     }
     
     func deleteTrip(withId tripId: Trip.ID) async throws {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.handleTrip(String(tripId)).url)
-        requestURL.httpMethod = HTTPMethods.DELETE.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-
+        let requestURL = try contructRequest(url: EndPoints.handleTrip(String(tripId)).url, httpMethod: .DELETE)
         try await performVoidNetworkRequest(requestURL)
     }
     
     func createEvent(with request: EventCreate) async throws -> Event {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.events.url)
-        requestURL.httpMethod = HTTPMethods.POST.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.contentType.rawValue)
-
+        var requestURL = try contructRequest(url: EndPoints.events.url, httpMethod: .POST)
+        
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime]
-        
         let locationData: [String: Any] = [
             "latitude": request.location?.latitude ?? 0,
             "longitude": request.location?.longitude ?? 0,
             "address": request.location?.address ?? "",
         ]
-
         let eventData: [String: Any] = [
             "name": request.name,
             "date": dateFormatter.string(from: request.date),
@@ -245,25 +194,15 @@ class LiveJournalService: JournalService {
     }
     
     func updateEvent(withId eventId: Event.ID, and request: EventUpdate) async throws -> Event {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.handleEvent(String(eventId)).url)
-        requestURL.httpMethod = HTTPMethods.PUT.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.contentType.rawValue)
+        var requestURL = try contructRequest(url: EndPoints.handleEvent(String(eventId)).url, httpMethod: .PUT)
 
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withInternetDateTime]
-        
         let locationData: [String: Any] = [
             "latitude": request.location?.latitude ?? 0,
             "longitude": request.location?.longitude ?? 0,
             "address": request.location?.address ?? "",
         ]
-
         let eventData: [String: Any] = [
             "name": request.name,
             "date": dateFormatter.string(from: request.date),
@@ -277,53 +216,41 @@ class LiveJournalService: JournalService {
     }
     
     func deleteEvent(withId eventId: Event.ID) async throws {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.handleEvent(String(eventId)).url)
-        requestURL.httpMethod = HTTPMethods.DELETE.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-
+        let requestURL = try contructRequest(url: EndPoints.handleEvent(String(eventId)).url, httpMethod: .DELETE)
         try await performVoidNetworkRequest(requestURL)
     }
     
     @discardableResult
     func createMedia(with request: MediaCreate) async throws -> Media {
-        guard let token = token else {
-            throw NetworkError.invalidValue
-        }
-
-        var requestURL = URLRequest(url: EndPoints.media.url)
-        requestURL.httpMethod = HTTPMethods.POST.rawValue
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
-        requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-        requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.contentType.rawValue)
-
-        let base64Str = request.base64Data.base64EncodedString(options: .lineLength64Characters)
+        var requestURL = try contructRequest(url: EndPoints.media.url, httpMethod: .POST)
         
+        let base64Str = request.base64Data.base64EncodedString(options: .lineLength64Characters)
         let mediaData: [String: Any] = [
             "event_id": request.eventId,
             "base64_data": base64Str
         ]
-        
         requestURL.httpBody = try JSONSerialization.data(withJSONObject: mediaData)
 
         return try await performNetworkRequest(requestURL, responseType: Media.self)
     }
     
     func deleteMedia(withId mediaId: Media.ID) async throws {
+        let requestURL = try contructRequest(url: EndPoints.deleteMedia(String(mediaId)).url, httpMethod: .DELETE)
+        try await performVoidNetworkRequest(requestURL)
+    }
+    
+    private func contructRequest(url: URL, httpMethod: HTTPMethods ) throws -> URLRequest {
         guard let token = token else {
             throw NetworkError.invalidValue
         }
-
-        var requestURL = URLRequest(url: EndPoints.deleteMedia(String(mediaId)).url)
-        requestURL.httpMethod = HTTPMethods.DELETE.rawValue
+        var requestURL = URLRequest(url: url)
+        requestURL.httpMethod = httpMethod.rawValue
         requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.accept.rawValue)
         requestURL.addValue("Bearer \(token.accessToken)", forHTTPHeaderField: HTTPHeaders.authorization.rawValue)
-
-        try await performVoidNetworkRequest(requestURL)
+        if httpMethod == .POST || httpMethod == .PUT {
+            requestURL.addValue(MIMEType.JSON.rawValue, forHTTPHeaderField: HTTPHeaders.contentType.rawValue)
+        }
+        return requestURL
     }
     
     private func performNetworkRequest<T: Decodable>(_ request: URLRequest, responseType: T.Type) async throws -> T {
